@@ -14,6 +14,9 @@
 (setq recentf-max-menu-items 25)
 (global-set-key "\C-x\ \C-r" 'recentf-open-files)
 
+(desktop-save-mode 1)
+
+(setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo")))
 
 ;; Fonts
 
@@ -55,9 +58,16 @@
 		doc-view-mode-hook
                 term-mode-hook
                 shell-mode-hook
-                eshell-mode-hook
-		pdf-view-mode-hook))
+                eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+;; Disable cursor for pdf-view-mode
+(add-hook 'pdf-view-mode-hook
+	  (lambda ()
+	    (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+            (internal-show-cursor nil nil)
+	    (display-line-numbers-mode 0)))
+
 
 (require 'use-package)
 (setq use-package-always-ensure t)
@@ -200,6 +210,28 @@
   (setq dired-open-extensions '(("png" . "feh")
                                 ("mkv" . "mpv"))))
 
+(use-package treemacs
+  :ensure t
+  :defer t
+  :init)
+
+(use-package treemacs-evil
+  :after (treemacs evil)
+  :ensure t)
+
+(use-package treemacs-projectile
+  :after (treemacs projectile)
+  :ensure t)
+
+(use-package treemacs-magit
+  :after (treemacs magit)
+  :ensure t)
+
+(use-package treemacs-tab-bar ;;treemacs-tab-bar if you use tab-bar-mode
+  :after (treemacs)
+  :ensure t
+  :config (treemacs-set-scope-type 'Tabs))
+
 (use-package hydra)
 
 (defhydra hydra-text-scale (:timeout 4)
@@ -214,7 +246,7 @@
 (use-package markdown-mode
   :ensure t
   :mode ("README\\.md\\'" . gfm-mode)
-  :init (setq markdown-command "multimarkdown"))
+  :init (setq markdown-command "pandoc"))
 
 (defun lsp-mode-setup ()
   (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
@@ -240,6 +272,11 @@
   :after lsp)
 
 (use-package smartparens)
+
+(use-package rust-mode)
+(add-hook 'rust-mode-hook
+          (lambda () (setq indent-tabs-mode nil)))
+(add-hook 'rust-mode-hook #'lsp)
 
 (use-package company
   :after lsp-mode
@@ -280,11 +317,13 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ispell-dictionary nil)
  '(package-selected-packages
-   '(which-key use-package undo-tree typescript-mode sublimity smooth-scrolling smartparens ranger rainbow-delimiters pdf-tools minimap magit lsp-ui lsp-treemacs lsp-ivy ivy-rich helpful general evil-collection doom-themes doom-modeline dired-single dired-open counsel-projectile company-box command-log-mode cmake-mode auto-package-update all-the-icons-dired)))
+   '(treemacs-tab-bar treemacs-magit treemacs-projectile treemacs-evil rust-mode which-key use-package undo-tree typescript-mode sublimity smooth-scrolling smartparens ranger rainbow-delimiters pdf-tools minimap magit lsp-ui lsp-treemacs lsp-ivy ivy-rich helpful general evil-collection doom-themes doom-modeline dired-single dired-open counsel-projectile company-box command-log-mode cmake-mode auto-package-update all-the-icons-dired)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+(put 'dired-find-alternate-file 'disabled nil)
