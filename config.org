@@ -26,6 +26,8 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 
 (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo")))
 
+(setq backup-directory-alist '(("." . "~/.emacs.d/backup")))
+
 ;; Fonts
 
 (defvar default-font-size 110)
@@ -437,11 +439,12 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 #+begin_src emacs-lisp
 ;; Disable line numbers for some modes
 (dolist (mode '(org-mode-hook
-		doc-view-mode-hook
-                term-mode-hook
-		vterm-mode-hook
-                shell-mode-hook
-                eshell-mode-hook))
+	doc-view-mode-hook
+    term-mode-hook
+	vterm-mode-hook
+    shell-mode-hook
+    eww-mode-hook
+    eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 ;; Disable cursor for pdf-view-mode
