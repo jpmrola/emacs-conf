@@ -18,6 +18,9 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 
 (setq visible-bell t)
 
+;; enable mouse support in terminal emacs
+(xterm-mouse-mode 1)
+
 (recentf-mode 1)
 (setq recentf-max-menu-items 25)
 (global-set-key "\C-x\ \C-r" 'recentf-open-files)
@@ -25,8 +28,10 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 (desktop-save-mode 1)
 
 (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo")))
+(setq backup-directory-alist `(("." . ,(concat user-emacs-directory "backups"))))
 
 (setq backup-directory-alist '(("." . "~/.emacs.d/backup")))
+(setq auto-save-file-name-transforms `((".*" "~/.emacs.d/autosave/" t)))
 
 ;; Fonts
 
@@ -90,12 +95,14 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 (setq doom-modeline-icon t)
 
 (use-package doom-themes
-  :init (load-theme 'doom-gruvbox t))
+  :init (load-theme 'doom-one t))
 
-(use-package all-the-icons)
+(use-package nerd-icons)
 
-(use-package all-the-icons-dired
-  :hook (dired-mode . all-the-icons-dired-mode))
+(use-package nerd-icons-dired
+  :hook
+  (dired-mode . nerd-icons-dired-mode))
+
 #+end_src
 ** Help
 #+begin_src emacs-lisp
@@ -151,6 +158,10 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   :after evil
   :config
   (evil-collection-init))
+  
+  ;; fix org-cycle when inside terminal emacs
+(evil-define-key 'normal org-mode-map (kbd "<tab>") #'org-cycle)
+
 #+end_src
 *** ivy completion
 #+begin_src emacs-lisp
@@ -252,6 +263,11 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   :after (treemacs)
   :ensure t
   :config (treemacs-set-scope-type 'Tabs))
+
+(use-package treemacs-nerd-icons
+  :after treemacs
+  :config
+  (treemacs-load-theme "nerd-icons"))
 #+end_src
 *** ranger
 #+begin_src emacs-lisp
@@ -278,10 +294,19 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (lsp-ui-doc-position 'bottom))
 
 (use-package lsp-treemacs
-  :after lsp)
+  :disabled t
+  :after lsp treemacs)
+
+(with-eval-after-load 'lsp-treemacs
+          (doom-themes-treemacs-config))
 
 (use-package lsp-ivy
   :after lsp)
+#+end_src
+**** C/C++
+#+begin_src emacs-lisp
+(add-hook 'c-mode-hook 'lsp)
+(add-hook 'c++-mode-hook 'lsp)
 #+end_src
 **** rust
 #+begin_src emacs-lisp
@@ -289,6 +314,21 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 (add-hook 'rust-mode-hook
           (lambda () (setq indent-tabs-mode nil)))
 (add-hook 'rust-mode-hook #'lsp)
+#+end_src
+*** language modes
+**** docker
+#+begin_src emacs-lisp
+(use-package dockerfile-mode)
+(use-package yaml-mode)
+(add-to-list 'auto-mode-alist '("\\.yml\\'" . yaml-mode))
+(add-hook 'yaml-mode-hook
+  '(lambda ()
+  (define-key yaml-mode-map "\C-m" 'newline-and-indent)))
+#+end_src
+**** C
+#+begin_src emacs-lisp
+(setq-default c-basic-offset 4
+c-default-style "k&r")
 #+end_src
 *** company completion
 #+begin_src emacs-lisp
@@ -328,7 +368,9 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 
-(use-package smartparens)
+(use-package smartparens-mode
+  :ensure smartparens
+  :hook (prog-mode text-mode markdown-mode))
 #+end_src
 *** magit
 #+begin_src emacs-lisp
@@ -403,7 +445,8 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (visual-fill-column-mode 1))
 
 (use-package visual-fill-column
-  :hook (org-mode . org-mode-visual-fill))
+  :hook ((org-mode . org-mode-visual-fill)
+  (eww-mode . org-mode-visual-fill)))
 #+end_src
 ** Terminal emulator
 *** vterm
@@ -444,6 +487,7 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 	vterm-mode-hook
     shell-mode-hook
     eww-mode-hook
+    erc-mode-hook
     eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
