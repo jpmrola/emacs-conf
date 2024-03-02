@@ -481,14 +481,17 @@ c-default-style "k&r")
 *** Disable line number and cursor
 #+begin_src emacs-lisp
 ;; Disable line numbers for some modes
-(dolist (mode '(org-mode-hook
-	doc-view-mode-hook
+(dolist (mode '(
+    org-mode-hook
+    doc-view-mode-hook
     term-mode-hook
-	vterm-mode-hook
+    vterm-mode-hook
     shell-mode-hook
     eww-mode-hook
     erc-mode-hook
-    eshell-mode-hook))
+    eshell-mode-hook
+    treemacs-mode-hook
+    ))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 ;; Disable cursor for pdf-view-mode
