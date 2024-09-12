@@ -491,6 +491,7 @@ c-default-style "k&r")
     erc-mode-hook
     eshell-mode-hook
     treemacs-mode-hook
+    image-mode-hook
     ))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
@@ -500,4 +501,11 @@ c-default-style "k&r")
 	    (set (make-local-variable 'evil-normal-state-cursor) (list nil))
             (internal-show-cursor nil nil)
 	    (display-line-numbers-mode 0)))
+
+;; Disable cursor for pdf-view-mode
+ (add-hook 'image-mode-hook
+	  (lambda ()
+	    (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+            (internal-show-cursor nil nil)
+	    (display-line-numbers-mode 0)))           
 #+end_src
