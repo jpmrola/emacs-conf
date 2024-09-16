@@ -290,7 +290,7 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 
 (use-package lsp-ui
   :hook ((lsp-mode . lsp-ui-mode)
-         (lsp-after-initialize . (lambda () (keymap-local-set "<tab-bar> <mouse-movement>" #'ignore))))  ;; fix tab-bar mouse movement bell
+         (lsp-ui-mode . (lambda () (keymap-local-set "<tab-bar> <mouse-movement>" #'ignore))))  ;; fix tab-bar mouse movement bell
   :custom
   (lsp-ui-doc-position 'bottom))
 
