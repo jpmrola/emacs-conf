@@ -14,7 +14,8 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (tooltip-mode -1)           ; Disable tooltips
   (set-fringe-mode 10)        ; Give some breathing room
 
-  (menu-bar-mode -1)            ; Disable the menu bar
+  (when (not (eq system-type 'darwin))
+    ((menu-bar-mode -1))) ;; Disable the menu bar
 
   (setq visible-bell t)
 
@@ -39,19 +40,30 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (setq auto-save-file-name-transforms `((".*" "~/.emacs.d/autosave/" t)))
 
   ;; Fonts
-
   (defun set-fonts()
-    (defvar default-font-size 110)
-    (defvar default-variable-font-size 110)
+    (if (eq system-type 'darwin)
+        (progn (defvar default-font-size 125)
+         (defvar default-variable-font-size 125)
 
-    ;; set the default pitch face
-    (set-face-attribute 'default nil :font "Fira Code Retina" :height default-font-size)
+         ;; set the default pitch face
+         (set-face-attribute 'default nil :font "FiraCode Nerd Font" :height default-font-size)
 
-    ;; Set the fixed pitch face
-    (set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height default-font-size)
+         ;; Set the fixed pitch face
+         (set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font" :height default-font-size)
 
-    ;; Set the variable pitch face
-    (set-face-attribute 'variable-pitch nil :font "Cantarell" :height default-variable-font-size :weight 'regular))
+         ;; Set the variable pitch face
+         (set-face-attribute 'variable-pitch nil :font "Cantarell" :height default-variable-font-size :weight 'regular))
+      (progn (defvar default-font-size 110)
+       (defvar default-variable-font-size 110)
+
+       ;; set the default pitch face
+       (set-face-attribute 'default nil :font "Fira Code Retina" :height default-font-size)
+
+       ;; Set the fixed pitch face
+       (set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height default-font-size)
+
+       ;; Set the variable pitch face
+       (set-face-attribute 'variable-pitch nil :font "Cantarell" :height default-variable-font-size :weight 'regular))))
 
   (if (daemonp)
       (add-hook 'after-make-frame-functions
@@ -81,8 +93,8 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (require 'package)
 
   (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-			   ("org" . "https://orgmode.org/elpa/")
-			   ("elpa" . "https://elpa.gnu.org/packages/")))
+                           ("org" . "https://orgmode.org/elpa/")
+                           ("elpa" . "https://elpa.gnu.org/packages/")))
 
   (package-initialize)
   (unless package-archive-contents
@@ -104,22 +116,10 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     (auto-package-update-maybe)
     (auto-package-update-at-time "09:00"))
 
-  ;; straight.el
-  (defvar bootstrap-version)
-  (let ((bootstrap-file
-	 (expand-file-name
-	  "straight/repos/straight.el/bootstrap.el"
-	  (or (bound-and-true-p straight-base-dir)
-	      user-emacs-directory)))
-	(bootstrap-version 7))
-    (unless (file-exists-p bootstrap-file)
-      (with-current-buffer
-	  (url-retrieve-synchronously
-	   "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-	   'silent 'inhibit-cookies)
-	(goto-char (point-max))
-	(eval-print-last-sexp)))
-    (load bootstrap-file nil 'nomessage))
+  ;; vc-use-package before emacs 30
+  (unless (package-installed-p 'vc-use-package)
+    (package-vc-install "https://github.com/slotThe/vc-use-package"))
+  (require 'vc-use-package)
 #+end_src
 ** Theming
 #+begin_src emacs-lisp
@@ -293,11 +293,16 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :bind (("C-x C-j" . dired-jump))
     :custom ((dired-listing-switches "-agho --group-directories-first"))
     :config
-      (evil-collection-define-key 'normal 'dired-mode-map
-	    "h" 'dired-single-up-directory
-	    "l" 'dired-single-buffer))
+    (evil-collection-define-key 'normal 'dired-mode-map
+            "h" 'dired-single-up-directory
+            "l" 'dired-single-buffer))
+
+  (when (eq system-type 'darwin)
+    (setq insert-directory-program "/opt/homebrew/bin/gls"))
 
     (use-package dired-single
+      :vc (dired-single :url "https://github.com/emacsattic/dired-single.git"
+                        :branch "master")
       :commands (dired dired-jump))
 
     (use-package dired-open
@@ -306,7 +311,7 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
       ;; Doesn't work as expected!
       ;;(add-to-list 'dired-open-functions #'dired-open-xdg t)
       (setq dired-open-extensions '(("png" . "feh")
-				    ("mkv" . "mpv"))))
+                                    ("mkv" . "mpv"))))
     (use-package treemacs
       :ensure t
       :defer t
@@ -408,8 +413,12 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (use-package yaml-mode)
   (add-to-list 'auto-mode-alist '("\\.yml\\'" . yaml-mode))
   (add-hook 'yaml-mode-hook
-	    '(lambda ()
-	       (define-key yaml-mode-map "\C-m" 'newline-and-indent)))
+            '(lambda ()
+               (define-key yaml-mode-map "\C-m" 'newline-and-indent)))
+
+  (use-package docker
+    :ensure t
+    :bind ("C-c d" . docker))
 #+end_src
 **** C
 #+begin_src emacs-lisp
@@ -424,6 +433,10 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     (setq rustic-format-on-save nil)
     :custom
     (rustic-cargo-use-last-stored-arguments t))
+#+end_src
+**** CMake
+#+begin_src emacs-lisp
+  (use-package cmake-mode)
 #+end_src
 *** company completion
 #+begin_src emacs-lisp
@@ -473,17 +486,6 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :commands magit-status
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
-#+end_src
-*** copilot
-#+begin_src emacs-lisp
-  (use-package copilot
-    :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
-    :ensure t)
-  (define-key copilot-completion-map (kbd "<tab>") 'copilot-accept-completion)
-  (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion)
-  (use-package copilot-chat
-    :straight (:host github :repo "chep/copilot-chat.el" :files ("*.el"))
-    :after (request org markdown-mode shell-maker))
 #+end_src
 ** Document handling
 *** pdf-tools
