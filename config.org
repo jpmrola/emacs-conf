@@ -95,7 +95,8 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 
   (setq package-archives '(("melpa" . "https://melpa.org/packages/")
                           ("org" . "https://orgmode.org/elpa/")
-                          ("elpa" . "https://elpa.gnu.org/packages/")))
+                          ("elpa" . "https://elpa.gnu.org/packages/")
+                          ("nongnu-elpa" . "https://elpa.nongnu.org/nongnu/")))
 
   (package-initialize)
   (unless package-archive-contents
@@ -525,7 +526,8 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (defun org-mode-setup ()
     (org-indent-mode)
     (mixed-pitch-mode 1)
-    (visual-line-mode 1))
+    (visual-line-mode 1)
+    (org-download-enable))
 
   (use-package org-appear
     :commands (org-appear-mode)
@@ -603,6 +605,22 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
            (eww-mode . org-mode-visual-fill))
     :init (advice-add 'text-scale-adjust :after #'visual-fill-column-adjust)
     (setq visual-fill-column-adjust-for-text-scale nil))
+
+  (use-package org-download)
+  (use-package engrave-faces)
+
+  ;; confluence export
+  (use-package org-contrib)
+  (require 'ox-confluence)
+
+  ;;  uml support
+  (use-package plantuml-mode)
+  (org-babel-do-load-languages 'org-babel-load-languages '((plantuml . t)))
+  (setq plantuml-default-exec-mode 'jar)
+  (when (eq system-type 'darwin)
+    (progn (setq plantuml-jar-path "/opt/homebrew/Cellar/plantuml/1.2025.2/libexec/plantuml.jar")
+           (setq org-plantuml-jar-path "/opt/homebrew/Cellar/plantuml/1.2025.2/libexec/plantuml.jar")))
+  (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
 #+end_src
 ** Terminal emulator
 *** vterm
