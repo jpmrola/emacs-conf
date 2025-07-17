@@ -14,9 +14,6 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (tooltip-mode -1)           ; Disable tooltips
   (set-fringe-mode 10)        ; Give some breathing room
 
-  (when (not (eq system-type 'darwin))
-    (menu-bar-mode -1)) ;; Disable the menu bar
-
   (setq visible-bell t)
 
   ;; enable mouse support in terminal emacs
@@ -25,6 +22,7 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (recentf-mode 1)
   (setq recentf-max-menu-items 25)
   (global-set-key "\C-x\ \C-r" 'recentf-open-files)
+  (global-set-key (kbd "C-x C-b") 'ibuffer-list-buffers)
 
   (desktop-save-mode 1)
 
@@ -39,6 +37,9 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (setq backup-directory-alist '(("." . "~/.emacs.d/backup")))
   (setq auto-save-file-name-transforms `((".*" "~/.emacs.d/autosave/" t)))
   (setq lock-file-name-transforms `((".*" "~/.emacs.d/locks/" t)))
+
+  ;; set up auth source
+  (setq auth-sources '("~/.authinfo"))
 
   ;; Fonts
   (defun set-fonts()
@@ -58,10 +59,10 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
        (defvar default-variable-font-size 110)
 
        ;; set the default pitch face
-       (set-face-attribute 'default nil :font "Fira Code Retina" :height default-font-size)
+       (set-face-attribute 'default nil :font "FiraCode Nerd Font" :height default-font-size)
 
        ;; Set the fixed pitch face
-       (set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height default-font-size)
+       (set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font" :height default-font-size)
 
        ;; Set the variable pitch face
        (set-face-attribute 'variable-pitch nil :font "Cantarell" :height default-variable-font-size :weight 'regular))))
@@ -302,24 +303,26 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :custom ((dired-listing-switches "-agho --group-directories-first"))
     :config
     (evil-collection-define-key 'normal 'dired-mode-map
-            "h" 'dired-single-up-directory
-            "l" 'dired-single-buffer))
+      "h" 'dired-up-directory
+      "l" 'dired-find-file)
+    (setq dired-kill-when-opening-new-dired-buffer t)
+    (setq dired-dwim-target t))
 
   (when (eq system-type 'darwin)
     (setq insert-directory-program "/opt/homebrew/bin/gls"))
 
-    (use-package dired-single
-      :vc (dired-single :url "https://github.com/emacsattic/dired-single.git"
-                        :branch "master")
-      :commands (dired dired-jump))
+  (use-package dired-open
+    :commands (dired dired-jump)
+    :config
+    ;; Doesn't work as expected!
+    ;;(add-to-list 'dired-open-functions #'dired-open-xdg t)
+    (setq dired-open-extensions '(("png" . "feh")
+                                  ("mkv" . "mpv"))))
 
-    (use-package dired-open
-      :commands (dired dired-jump)
-      :config
-      ;; Doesn't work as expected!
-      ;;(add-to-list 'dired-open-functions #'dired-open-xdg t)
-      (setq dired-open-extensions '(("png" . "feh")
-                                    ("mkv" . "mpv"))))
+  (use-package dired-preview
+    ;; Default values for demo purposes
+    :config (add-to-list 'dired-preview-trigger-commands 'dired-up-directory t)
+    (dired-preview-global-mode 1))
 #+end_src
 *** treemacs
 #+begin_src emacs-lisp
@@ -372,6 +375,11 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
      ("C-c a g" . activities-revert)
      ("C-c a l" . activities-list)))
 #+end_src
+*** flycheck
+#+begin_src emacs-lisp
+  (use-package flycheck)
+  (global-flycheck-mode)
+#+end_src
 *** lsp
 #+begin_src emacs-lisp
   (defun lsp-mode-setup ()
@@ -416,7 +424,13 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 #+end_src
 **** Python
 #+begin_src emacs-lisp
-  (add-hook 'python-mode-hook 'lsp)
+  (use-package lsp-pyright
+    :ensure t
+    :custom (lsp-pyright-langserver-command "basedpyright")
+    :hook (python-mode . (lambda ()
+                            (require 'lsp-pyright)
+                            (lsp))))  ; or lsp-deferred
+
 #+end_src
 *** language modes
 **** Docker
@@ -508,6 +522,15 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :commands magit-status
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+  (use-package forge
+    :after magit
+    :config (push '("gitlab.tudelft.nl"               ; GITHOST
+  		  "gitlab.tudelft.nl/api/v4"        ; APIHOST
+  		  "gitlab.tudelft.nl"               ; WEBHOST and INSTANCE-ID
+  		  forge-gitlab-repository)          ; CLASS
+  		forge-alist)
+    )
+
 #+end_src
 ** Document handling
 *** pdf-tools
