@@ -474,6 +474,11 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 #+begin_src emacs-lisp
   (use-package cmake-mode)
 #+end_src
+**** Python
+#+begin_src emacs-lisp
+  (use-package elpy
+    :init (elpy-enable))
+#+end_src
 *** company completion
 #+begin_src emacs-lisp
   (use-package company
@@ -531,6 +536,23 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   		forge-alist)
     )
 
+#+end_src
+*** jira
+#+begin_src emacs-lisp
+  (use-package jira
+    :config
+    (setq jira-base-url "https://jira.tudelft.nl") ;; Jira instance URL
+    (setq jira-token-is-personal-access-token t)
+    (setq jira-api-version 2)) ;; Version 2 is also allowed
+#+end_src
+*** LLM
+#+begin_src emacs-lisp
+  (use-package gptel
+    :init
+    (gptel-make-ollama "Ollama"
+      :host "localhost:11434"
+      :stream t
+      :models '(qwen2.5-coder:3b)))
 #+end_src
 ** Document handling
 *** pdf-tools
@@ -644,13 +666,19 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (require 'ox-confluence)
 
   ;;  uml support
-  (use-package plantuml-mode)
-  (org-babel-do-load-languages 'org-babel-load-languages '((plantuml . t)))
-  (setq plantuml-default-exec-mode 'jar)
-  (when (eq system-type 'darwin)
-    (progn (setq plantuml-jar-path "/opt/homebrew/Cellar/plantuml/1.2025.2/libexec/plantuml.jar")
-           (setq org-plantuml-jar-path "/opt/homebrew/Cellar/plantuml/1.2025.2/libexec/plantuml.jar")))
-  (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
+  (use-package plantuml-mode
+    :init
+    (when (eq system-type 'gnu/linux)
+      (setq plantuml-default-exec-mode 'jar)
+      (setq plantuml-jar-path "/usr/share/java/plantuml.jar")
+      (setq org-plantuml-jar-path "/usr/share/java/plantuml.jar"))
+    (when (eq system-type 'darwin)
+      (setq plantuml-default-exec-mode 'jar)
+      (setq plantuml-jar-path "/opt/homebrew/Cellar/plantuml/1.2025.2/libexec/plantuml.jar")
+      (setq org-plantuml-jar-path "/opt/homebrew/Cellar/plantuml/1.2025.2/libexec/plantuml.jar"))
+    (setq plantuml-svg-background "#ffffff")
+    (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
+    (org-babel-do-load-languages 'org-babel-load-languages '((plantuml . t))))
 #+end_src
 ** Terminal emulator
 *** vterm
