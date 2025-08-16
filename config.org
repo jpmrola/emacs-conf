@@ -55,8 +55,8 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 
          ;; Set the variable pitch face
          (set-face-attribute 'variable-pitch nil :font "Cantarell" :height default-variable-font-size :weight 'regular))
-      (progn (defvar default-font-size 110)
-       (defvar default-variable-font-size 110)
+      (progn (defvar default-font-size 120)
+       (defvar default-variable-font-size 120)
 
        ;; set the default pitch face
        (set-face-attribute 'default nil :font "FiraCode Nerd Font" :height default-font-size)
@@ -132,8 +132,18 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 
   (setq doom-modeline-icon t)
 
-  (use-package doom-themes
-      :init (load-theme 'doom-one t))
+  (use-package doom-themes)
+
+  (use-package ef-themes)
+
+  (use-package standard-themes)
+
+  (use-package modus-themes
+      :init (load-theme 'modus-operandi-tinted t)
+      :ensure t)
+
+  (use-package all-the-icons
+    :if (display-graphic-p))
 
   (use-package nerd-icons)
 
@@ -249,7 +259,7 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :diminish
     :bind (("C-s" . swiper)
 	   :map ivy-minibuffer-map
-	   ("TAB" . ivy-alt-done)	
+	   ("TAB" . ivy-alt-done)
 	   ("C-l" . ivy-alt-done)
 	   ("C-j" . ivy-next-line)
 	   ("C-k" . ivy-previous-line)
@@ -352,7 +362,6 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :after treemacs
     :config
     (treemacs-load-theme "nerd-icons"))
-
 #+end_src
 ** Dev
 *** workspaces
@@ -380,6 +389,24 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (use-package flycheck)
   (global-flycheck-mode)
 #+end_src
+*** imenu
+#+begin_src emacs-lisp
+  (add-hook 'markdown-mode-hook #'imenu-add-menubar-index)
+  (add-hook 'makefile-mode-hook #'imenu-add-menubar-index)
+  (add-hook 'prog-mode-hook #'imenu-add-menubar-index)
+  (add-hook 'prog-mode-hook 'context-menu-mode)
+  (add-hook 'markdown-mode-hook (lambda () (setq-local imenu-auto-rescan t)))
+  (add-hook 'makefile-mode-hook (lambda () (setq-local imenu-auto-rescan t)))
+  (add-hook 'prog-mode-hook
+    	  (lambda ()
+              (setq-local imenu-auto-rescan t)
+              (setq-local imenu-sort-function #'imenu--sort-by-name)))
+  (setq org-imenu-depth 7)
+  (add-hook 'org-mode-hook #'imenu-add-menubar-index)
+  (add-hook 'org-mode-hook (lambda () (setq-local imenu-auto-rescan t)))
+
+  (use-package imenu-list)
+#+end_src
 *** lsp
 #+begin_src emacs-lisp
   (defun lsp-mode-setup ()
@@ -395,20 +422,21 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     (lsp-enable-which-key-integration t))
 
   (use-package lsp-ui
-    :hook ((lsp-mode . lsp-ui-mode)
-	   (lsp-ui-mode . (lambda () (keymap-local-set "<tab-bar> <mouse-movement>" #'ignore))))  ;; fix tab-bar mouse movement bell
+    :hook (lsp-mode . lsp-ui-mode)
+    (lsp-ui-mode . (lambda () (keymap-local-set "<tab-bar> <mouse-movement>" #'ignore)))  ;; fix tab-bar mouse movement bell
     :custom
     (lsp-ui-doc-position 'bottom))
 
   (use-package lsp-treemacs
-    :disabled t
-    :after lsp treemacs)
-
-  (with-eval-after-load 'lsp-treemacs
-    (doom-themes-treemacs-config))
+    :hook (lsp-treemacs-mode . (lambda () (keymap-local-set "<tab-bar> <mouse-movement>" #'ignore)))  ;; fix tab-bar mouse movement bell
+    :after lsp)
 
   (use-package lsp-ivy
-    :after lsp)
+    :after lsp-mode
+    :bind (:map lsp-mode-map
+	  ("C-c l s" . lsp-ivy-workspace-symbol)))
+  ;;  (with-eval-after-load 'lsp-treemacs
+  ;;    (doom-themes-treemacs-config))
 #+end_src
 **** C/C++
 #+begin_src emacs-lisp
@@ -477,6 +505,7 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 **** Python
 #+begin_src emacs-lisp
   (use-package elpy
+    :config (setq elpy-modules (delq 'elpy-module-highlight-indentation elpy-modules))
     :init (elpy-enable))
 #+end_src
 *** company completion
@@ -525,10 +554,13 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 #+begin_src emacs-lisp
   (use-package magit
     :commands magit-status
+    :bind ("C-x g" . magit-status)
+    :ensure t
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
   (use-package forge
     :after magit
+    :ensure t
     :config (push '("gitlab.tudelft.nl"               ; GITHOST
   		  "gitlab.tudelft.nl/api/v4"        ; APIHOST
   		  "gitlab.tudelft.nl"               ; WEBHOST and INSTANCE-ID
@@ -570,6 +602,7 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (use-package markdown-mode
     :ensure t
     :mode ("README\\.md\\'" . gfm-mode)
+    :config (setq markdown-fontify-code-blocks-natively 't)
     :init (setq markdown-command "pandoc"))
 #+end_src
 ** Org mode
@@ -742,5 +775,5 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
 	    (lambda ()
 	      (set (make-local-variable 'evil-normal-state-cursor) (list nil))
 	      (internal-show-cursor nil nil)
-	      (display-line-numbers-mode 0)))           
+	      (display-line-numbers-mode 0)))
 #+end_src
