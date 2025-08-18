@@ -5,7 +5,6 @@
 
 * Sections
 ** Core
-Sets font size, disables scrollbar, bell sound, desktop save mode, command logs...
 #+begin_src emacs-lisp
   (setq inhibit-startup-message t)
 
@@ -194,13 +193,6 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :config
     (setq which-key-idle-delay 1))
 
-  (use-package counsel
-    :bind (("M-x" . counsel-M-x)
-	   ("C-x b" . counsel-ibuffer)
-	   ("C-x C-f" . counsel-find-file)
-	   :map minibuffer-local-map
-	   ("C-r" . 'counsel-minibuffer-history)))
-
   (use-package helpful
     :custom
     (counsel-describe-function-function #'helpful-callable)
@@ -211,46 +203,18 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     ([remap describe-variable] . counsel-describe-variable)
     ([remap describe-key] . helpful-key))
 #+end_src
-** Keybindings
-*** evil
+** Completion
+*** counsel
 #+begin_src emacs-lisp
-  (use-package evil
-    :init
-    (setq evil-want-integration t)
-    (setq evil-want-keybinding nil)
-    (setq evil-want-C-u-scroll t)
-    (setq evil-want-C-i-jump nil)
-    :config
-    (evil-mode 1)
-    (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
-    (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
-
-    (evil-set-undo-system 'undo-tree)
-
-    ;; Use visual line motions even outside of visual-line-mode buffers
-    (evil-global-set-key 'motion "j" 'evil-next-visual-line)
-    (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
-
-    (evil-set-initial-state 'messages-buffer-mode 'normal)
-    (evil-set-initial-state 'dashboard-mode 'normal)
-    (evil-set-initial-state 'pdf-view-mode 'normal)
-    (evil-select-search-module 'evil-search-module 'evil-search))
-
-  (use-package evil-collection
-    :after evil
-    :config
-    (evil-collection-init))
-
-  (use-package anzu)
-  (global-anzu-mode +1)
-  (with-eval-after-load 'evil
-    (use-package evil-anzu))
-
-  ;; fix org-cycle when inside terminal emacs
-  (evil-define-key 'normal org-mode-map (kbd "<tab>") #'org-cycle)
-
+  (use-package counsel
+    :bind
+    (("M-x" . counsel-M-x)
+     ("C-x b" . counsel-ibuffer)
+     ("C-x C-f" . counsel-find-file)
+     :map minibuffer-local-map
+     ("C-r" . 'counsel-minibuffer-history)))
 #+end_src
-*** ivy completion
+*** ivy
 #+begin_src emacs-lisp
   (use-package swiper
     :ensure t)
@@ -260,15 +224,9 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :bind (("C-s" . swiper)
 	   :map ivy-minibuffer-map
 	   ("TAB" . ivy-alt-done)
-	   ("C-l" . ivy-alt-done)
-	   ("C-j" . ivy-next-line)
-	   ("C-k" . ivy-previous-line)
 	   :map ivy-switch-buffer-map
-	   ("C-k" . ivy-previous-line)
-	   ("C-l" . ivy-done)
 	   ("C-d" . ivy-switch-buffer-kill)
 	   :map ivy-reverse-i-search-map
-	   ("C-k" . ivy-previous-line)
 	   ("C-d" . ivy-reverse-i-search-kill))
     :config
     (ivy-mode 1))
@@ -276,32 +234,6 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
   (use-package ivy-rich
     :init
     (ivy-rich-mode 1))
-#+end_src
-*** general
-#+begin_src emacs-lisp
-  (use-package general
-    :config
-    (general-create-definer rune/leader-keys
-      :keymaps '(normal insert visual emacs)
-      :prefix "SPC"
-      :global-prefix "C-SPC")
-
-    (rune/leader-keys
-      "t"  '(:ignore t :which-key "toggles")
-      "tt" '(counsel-load-theme :which-key "choose theme")))
-#+end_src
-*** hydra
-#+begin_src emacs-lisp
-  (use-package hydra)
-
-  (defhydra hydra-text-scale (:timeout 4)
-    "scale text"
-    ("j" text-scale-increase "in")
-    ("k" text-scale-decrease "out")
-    ("f" nil "finished" :exit t))
-
-  (rune/leader-keys
-    "ts" '(hydra-text-scale/body :which-key "scale text"))
 #+end_src
 ** File Management
 *** dired
@@ -569,7 +501,7 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     )
 
 #+end_src
-*** jira
+*** Jira
 #+begin_src emacs-lisp
   (use-package jira
     :config
@@ -606,13 +538,9 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :init (setq markdown-command "pandoc"))
 #+end_src
 ** Org mode
+*** Font and Faces setup
 #+begin_src emacs-lisp
   (use-package mixed-pitch)
-  (defun org-mode-setup ()
-    (org-indent-mode)
-    (mixed-pitch-mode 1)
-    (visual-line-mode 1)
-    (org-download-enable))
 
   (use-package org-appear
     :commands (org-appear-mode)
@@ -622,8 +550,6 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     (setq org-appear-autoemphasis   t
           org-appear-autolinks      t
           org-appear-autosubmarkers t))
-
-  ;; Org Mode Configuration ------------------------------------------------------
 
   (defun org-font-setup ()
     ;; Replace list hyphen with dot
@@ -651,27 +577,11 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
                       :inherit 'default)
 
   (setq org-todo-keywords
-        '((sequence "TODO" "IN PROGRESS" "|" "DONE")))
-  (setq org-todo-keyword-faces
-        '(("TODO" . (:foreground "#282c34" :background "#51afef" :box (:line-width (3 . 3) :color "#51afef")))
-          ("IN PROGRESS" . (:foreground "#282c34" :background "#da8548" :box (:line-width (3 . 3) :color "#da8548")))
-          ("DONE" . (:foreground "#282c34" :background "#98be65" :box (:line-width (3 . 3) :color "#98be65")))))
-
-
-  (defun org-latex-setup ()
-    (setq org-preview-latex-default-process 'dvisvgm)
-    (add-to-list 'org-latex-packages-alist '("" "tikz" t))
-
-    (eval-after-load "preview"
-      '(add-to-list 'preview-default-preamble
-                    "\\PreviewEnvironment{tikzpicture}" t)))
-
-  (use-package org
-    :hook (org-mode . org-mode-setup)
-    :config
-    (setq org-ellipsis " ▾")
-    (org-font-setup)
-    (org-latex-setup))
+        '((sequence "TODO(t)" "IN PROGRESS(p)" "|" "DONE(d!)")))
+;;  (setq org-todo-keyword-faces
+;;        '(("TODO" . (:foreground "#282c34" :background "#51afef" :box (:line-width (3 . 3) :color "#51afef")))
+;;          ("IN PROGRESS" . (:foreground "#282c34" :background "#da8548" :box (:line-width (3 . 3) :color "#da8548")))
+;;          ("DONE" . (:foreground "#282c34" :background "#98be65" :box (:line-width (3 . 3) :color "#98be65")))))
 
   (use-package org-bullets
     :after org
@@ -691,13 +601,30 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     :init (advice-add 'text-scale-adjust :after #'visual-fill-column-adjust)
     (setq visual-fill-column-adjust-for-text-scale nil))
 
-  (use-package org-download)
   (use-package engrave-faces)
+#+end_src
+*** Latex
+#+begin_src emacs-lisp
+  (defun org-latex-setup ()
+    (setq org-preview-latex-default-process 'dvisvgm)
+    (add-to-list 'org-latex-packages-alist '("" "tikz" t))
 
+    (eval-after-load "preview"
+      '(add-to-list 'preview-default-preamble
+                    "\\PreviewEnvironment{tikzpicture}" t)))
+#+end_src
+*** Drag and drop
+#+begin_src emacs-lisp
+  (use-package org-download)
+#+end_src
+*** Confluence export
+  #+begin_src emacs-lisp
   ;; confluence export
   (use-package org-contrib)
   (require 'ox-confluence)
-
+#+end_src
+*** PlantUML
+#+begin_src emacs-lisp
   ;;  uml support
   (use-package plantuml-mode
     :init
@@ -712,6 +639,101 @@ Sets font size, disables scrollbar, bell sound, desktop save mode, command logs.
     (setq plantuml-svg-background "#ffffff")
     (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
     (org-babel-do-load-languages 'org-babel-load-languages '((plantuml . t))))
+#+end_src
+*** Agenda
+#+begin_src emacs-lisp
+  (defun org-agenda-setup ()
+    (setq org-agenda-directory "~/Documents/org/agenda/")
+    (setq org-agenda-files (list org-agenda-directory))
+    (setq org-agenda-start-with-log-mode t)
+    (setq org-M-RET-may-split-line '((default . nil)))
+    (setq org-insert-heading-respect-content t)
+    (setq org-log-done 'time)
+    (setq org-log-into-drawer t)
+    (setq org-capture-templates
+          `(("i" "inbox" entry (file ,(concat org-agenda-directory "inbox.org"))
+             "* TODO %?"))))
+#+end_src
+*** Denote
+#+begin_src emacs-lisp
+  (use-package denote
+    :ensure t
+    :hook
+    ( ;; If you use Markdown or plain text files, then you want to make
+     ;; the Denote links clickable (Org renders links as buttons right
+     ;; away)
+     (text-mode . denote-fontify-links-mode-maybe)
+     ;; Apply colours to Denote names in Dired.  This applies to all
+     ;; directories.  Check `denote-dired-directories' for the specific
+     ;; directories you may prefer instead.  Then, instead of
+     ;; `denote-dired-mode', use `denote-dired-mode-in-directories'.
+     (dired-mode . denote-dired-mode))
+    :bind
+    ;; Denote DOES NOT define any key bindings.  This is for the user to
+    ;; decide.  For example:
+    ( :map global-map
+      ("C-c n n" . denote)
+      ("C-c n d" . denote-dired)
+      ("C-c n g" . denote-grep)
+      ;; If you intend to use Denote with a variety of file types, it is
+      ;; easier to bind the link-related commands to the `global-map', as
+      ;; shown here.  Otherwise follow the same pattern for `org-mode-map',
+      ;; `markdown-mode-map', and/or `text-mode-map'.
+      ("C-c n l" . denote-link)
+      ("C-c n L" . denote-add-links)
+      ("C-c n b" . denote-backlinks)
+      ("C-c n q c" . denote-query-contents-link) ; create link that triggers a grep
+      ("C-c n q f" . denote-query-filenames-link) ; create link that triggers a dired
+      ;; Note that `denote-rename-file' can work from any context, not just
+      ;; Dired bufffers.  That is why we bind it here to the `global-map'.
+      ("C-c n r" . denote-rename-file)
+      ("C-c n R" . denote-rename-file-using-front-matter)
+
+      ;; Key bindings specifically for Dired.
+      :map dired-mode-map
+      ("C-c C-d C-i" . denote-dired-link-marked-notes)
+      ("C-c C-d C-r" . denote-dired-rename-files)
+      ("C-c C-d C-k" . denote-dired-rename-marked-files-with-keywords)
+      ("C-c C-d C-R" . denote-dired-rename-marked-files-using-front-matter))
+
+    :config
+    ;; Remember to check the doc string of each of those variables.
+    (setq denote-directory (expand-file-name "~/Documents/org/denote"))
+    (setq denote-save-buffers nil)
+    (setq denote-known-keywords '("emacs" "personal" "programming" "science" "literature"))
+    (setq denote-infer-keywords t)
+    (setq denote-sort-keywords t)
+    (setq denote-prompts '(title keywords))
+    (setq denote-excluded-directories-regexp nil)
+    (setq denote-excluded-keywords-regexp nil)
+    (setq denote-rename-confirmations '(rewrite-front-matter modify-file-name))
+
+    ;; Pick dates, where relevant, with Org's advanced interface:
+    (setq denote-date-prompt-use-org-read-date t)
+
+    ;; Automatically rename Denote buffers using the `denote-rename-buffer-format'.
+    (denote-rename-buffer-mode 1))
+#+end_src
+*** Org startup
+#+begin_src emacs-lisp
+  (let ((org-dirs '("~/Documents/org" "~/Documents/org/agenda" "~/Documents/org/denote")))
+    (dolist (dir org-dirs)
+      (unless (file-exists-p dir)
+        (make-directory dir t))))
+
+  (defun org-mode-setup ()
+    (org-indent-mode)
+    (mixed-pitch-mode 1)
+    (visual-line-mode 1)
+    (org-download-enable))
+
+  (use-package org
+    :hook (org-mode . org-mode-setup)
+    :config
+    (org-agenda-setup)
+    (setq org-ellipsis " ▾")
+    (org-font-setup)
+    (org-latex-setup))
 #+end_src
 ** Terminal emulator
 *** vterm
