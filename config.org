@@ -131,8 +131,6 @@
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 15)))
 
-  (setq doom-modeline-icon t)
-
   (use-package doom-themes)
 
   (use-package ef-themes)
@@ -195,46 +193,79 @@
     (setq which-key-idle-delay 1))
 
   (use-package helpful
-    :custom
-    (counsel-describe-function-function #'helpful-callable)
-    (counsel-describe-variable-function #'helpful-variable)
+    :ensure t
     :bind
-    ([remap describe-function] . counsel-describe-function)
+    ([remap describe-function] . helpful-callable)
     ([remap describe-command] . helpful-command)
-    ([remap describe-variable] . counsel-describe-variable)
+    ([remap describe-variable] . helpful-variable)
     ([remap describe-key] . helpful-key))
 #+end_src
 ** Completion
-*** counsel
+*** vertico
 #+begin_src emacs-lisp
-  (use-package counsel
-    :bind
-    (("M-x" . counsel-M-x)
-     ("C-x b" . counsel-ibuffer)
-     ("C-x C-f" . counsel-find-file)
-     :map minibuffer-local-map
-     ("C-r" . 'counsel-minibuffer-history)))
-#+end_src
-*** ivy
-#+begin_src emacs-lisp
-  (use-package swiper
-    :ensure t)
-
-  (use-package ivy
-    :diminish
-    :bind (("C-s" . swiper)
-	   :map ivy-minibuffer-map
-	   ("TAB" . ivy-alt-done)
-	   :map ivy-switch-buffer-map
-	   ("C-d" . ivy-switch-buffer-kill)
-	   :map ivy-reverse-i-search-map
-	   ("C-d" . ivy-reverse-i-search-kill))
-    :config
-    (ivy-mode 1))
-
-  (use-package ivy-rich
+  (use-package vertico
+    :ensure t
     :init
-    (ivy-rich-mode 1))
+    (vertico-mode)
+    :custom
+    (vertico-cycle t)
+    (vertico-count 10))
+#+end_src
+*** consult
+#+begin_src emacs-lisp
+  (use-package consult
+    :ensure t
+    :bind (;; Search replacements
+           ("C-s" . consult-line)
+           ("M-s g" . consult-ripgrep)
+           ("M-s l" . consult-focus-lines)
+           ;; Navigation replacements
+           ("C-x b" . consult-buffer)
+           ("M-g i" . consult-imenu)
+  	 ("M-g M-l" . consult-flymake)
+           ("M-y" . consult-yank-pop)
+           ;; Help replacements
+           ("C-h i" . consult-info))
+    :hook (completion-list-mode . consult-preview-at-point-mode))
+#+end_src
+*** orderless
+#+begin_src emacs-lisp
+  (use-package orderless
+    :ensure t
+    :custom
+    (completion-styles '(orderless partial-completion basic))
+    (completion-category-defaults nil)
+    (completion-category-overrides nil))
+  (setq read-extended-command-predicate #'command-completion-default-include-p)
+#+end_src
+*** embark
+#+begin_src emacs-lisp
+  (use-package embark
+    :ensure t
+    :bind
+    (("C-." . embark-act)
+     ("M-." . embark-dwim)
+     ("C-h B" . embark-bindings))
+    :init
+    (setq prefix-help-command #'embark-prefix-help-command))
+
+  (use-package embark-consult
+    :ensure t
+    :after (embark consult)
+    :hook (embark-collect-mode . consult-preview-at-point-mode))
+#+end_src
+*** marginalia
+#+begin_src emacs-lisp
+  (use-package marginalia
+    :ensure t
+    :init
+    (marginalia-mode))
+#+end_src
+*** savehist
+#+begin_src emacs-lisp
+  (use-package savehist
+    :init
+    (savehist-mode))
 #+end_src
 ** File Management
 *** dired
@@ -275,10 +306,6 @@
     :after (treemacs evil)
     :ensure t)
 
-  (use-package treemacs-projectile
-    :after (treemacs projectile)
-    :ensure t)
-
   (use-package treemacs-magit
     :after (treemacs magit)
     :ensure t)
@@ -314,10 +341,19 @@
      ("C-c a g" . activities-revert)
      ("C-c a l" . activities-list)))
 #+end_src
-*** flycheck
+*** project
 #+begin_src emacs-lisp
-  (use-package flycheck)
-  (global-flycheck-mode)
+  (use-package project
+    :bind (("C-x p b" . consult-project-buffer))
+    :custom (project-vc-extra-root-markers '(".project" ".projectile"))
+    :config (setq project-switch-commands #'project-dired))
+#+end_src
+*** flymake
+#+begin_src emacs-lisp
+  (use-package flymake
+    :bind (:map flymake-mode-map
+                ("M-n" . flymake-goto-next-error)
+                ("M-p" . flymake-goto-prev-error)))
 #+end_src
 *** imenu
 #+begin_src emacs-lisp
@@ -343,62 +379,62 @@
 #+end_src
 *** lsp
 #+begin_src emacs-lisp
-  (defun lsp-mode-setup ()
-    (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
-    (lsp-headerline-breadcrumb-mode))
-
-  (use-package lsp-mode
-    :commands (lsp lsp-deferred)
-    :hook (lsp-mode . lsp-mode-setup)
-    :init
-    (setq lsp-keymap-prefix "C-c l")  ;; Or 'C-l', 's-l'
+  (use-package eglot
+    :bind (:map eglot-mode-map
+                ("C-c l r" . eglot-rename)
+                ("C-c l a" . eglot-code-actions)
+                ("C-c l h" . eldoc)
+                ("C-c l f" . eglot-format-buffer)
+  	      ("C-c l t" . eglot-find-typeDefinition)
+  	      ("C-c l d" . eglot-find-declaration))
+    :hook ((python-ts-mode . eglot-ensure)
+           (rust-ts-mode . eglot-ensure)
+  	 (c-ts-mode . eglot-ensure)
+  	 (c++-ts-mode . eglot-ensure))
     :config
-    (lsp-enable-which-key-integration t)
-    (yas-global-mode))
+    (setq completion-category-defaults nil)
+    (setq eglot-autoshutdown t)
+    (setq eglot-server-programs
+  	(append '((python-ts-mode . ("basedpyright-langserver" "--stdio"))
+                    ((c-ts-mode c++-ts-mode) . ("clangd" "--header-insertion=never"))
+                    (rust-ts-mode . ("rust-analyzer")))
+  		eglot-server-programs))
+    (add-to-list 'eglot-ignored-server-capabilities :documentFormattingProvider)
+    (add-to-list 'eglot-ignored-server-capabilities :documentOnTypeFormattingProvider)
+    (setq completion-category-defaults nil)
+    (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
+    (setq xref-show-xrefs-function #'consult-xref
+  	xref-show-definitions-function #'consult-xref))
 
-  (use-package lsp-ui
-    :hook (lsp-mode . lsp-ui-mode)
-    (lsp-ui-mode . (lambda () (keymap-local-set "<tab-bar> <mouse-movement>" #'ignore)))  ;; fix tab-bar mouse movement bell
+  (use-package eldoc-box
+    :ensure t
+    :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode)
     :custom
-    (lsp-ui-doc-position 'bottom))
+    (eldoc-box-max-pixel-width 600)
+    (eldoc-box-max-pixel-height 400))
 
-  (use-package lsp-treemacs
-    :hook (lsp-treemacs-mode . (lambda () (keymap-local-set "<tab-bar> <mouse-movement>" #'ignore)))  ;; fix tab-bar mouse movement bell
-    :after lsp)
-
-  (use-package lsp-ivy
-    :after lsp-mode
-    :bind (:map lsp-mode-map
-  	      ("C-c l s" . lsp-ivy-workspace-symbol)))
-  ;;  (with-eval-after-load 'lsp-treemacs
-  ;;    (doom-themes-treemacs-config))
-#+end_src
-**** C/C++
-#+begin_src emacs-lisp
-  (add-hook 'c-mode-hook 'lsp)
-  (add-hook 'c++-mode-hook 'lsp)
-  (let ((clangd-path (executable-find "clangd")))
-    (when clangd-path
-      (setq lsp-clangd-binary-path clangd-path)))
+  (use-package consult-eglot
+    :ensure t
+    :after (eglot consult)
+    :bind (:map eglot-mode-map
+                ("C-c l s" . consult-eglot-symbols)))
 #+end_src
 **** rust
 #+begin_src emacs-lisp
-  (use-package rust-mode)
-  (add-hook 'rust-mode-hook
-	    (lambda () (setq indent-tabs-mode nil)))
-  (add-hook 'rust-mode-hook #'lsp)
-#+end_src
-**** Python
-#+begin_src emacs-lisp
-  (use-package lsp-pyright
-    :ensure t
-    :custom (lsp-pyright-langserver-command "basedpyright")
-    :hook (python-mode . (lambda ()
-                            (require 'lsp-pyright)
-                            (lsp))))  ; or lsp-deferred
-
+  (use-package rust-ts-mode
+    :ensure nil
+    :hook (rust-ts-mode . (lambda () (setq indent-tabs-mode nil))))
 #+end_src
 *** language modes
+**** treesitter
+#+begin_src emacs-lisp
+  (use-package treesit-auto
+    :custom
+    (treesit-auto-install 'prompt)
+    :config
+    (treesit-auto-add-to-auto-mode-alist 'all)
+    (global-treesit-auto-mode))
+#+end_src
 **** Docker
 #+begin_src emacs-lisp
   (use-package dockerfile-mode)
@@ -416,9 +452,11 @@
 #+begin_src emacs-lisp
   (setq-default c-basic-offset 4
   		c-default-style "k&r")
-  (add-hook 'c-mode-hook
+  (setq-default c-ts-mode-indent-offset 4
+  	      c-ts-mode-indent-style 'k&r)
+  (add-hook 'c-ts-mode-hook
   	  (lambda () (setq indent-tabs-mode nil)))
-  (add-hook 'c++-mode-hook
+  (add-hook 'c++-ts-mode-hook
   	  (lambda () (setq indent-tabs-mode nil)))
 #+end_src
 **** CMake
@@ -430,6 +468,9 @@
 #+end_src
 **** Rust
 #+begin_src emacs-lisp
+  (add-hook 'rust-ts-mode-hook
+  	  (lambda () (setq indent-tabs-mode nil)))
+
   (use-package rustic
      :ensure t
      :config
@@ -440,8 +481,9 @@
 #+end_src
 **** Common Lisp
 #+begin_src emacs-lisp
-  (load (expand-file-name "~/.quicklisp/slime-helper.el"))
-  (setq inferior-lisp-program "sbcl")
+  (when (executable-find "sbcl")
+    (load (expand-file-name "~/.quicklisp/slime-helper.el"))
+    (setq inferior-lisp-program "sbcl"))
 #+end_src
 **** CMake
 #+begin_src emacs-lisp
@@ -449,48 +491,82 @@
 #+end_src
 **** Python
 #+begin_src emacs-lisp
-  (use-package elpy
-    :config (setq elpy-modules (delq 'elpy-module-highlight-indentation elpy-modules))
-    (setq elpy-formatter "black")
-    :init (elpy-enable))
+  (use-package python
+    :custom (python-shell-interpreter "python3"))
+
+  (use-package pyvenv
+    :ensure t
+    :config (pyvenv-mode 1))
+
+  (use-package apheleia
+    :ensure t
+    :config
+    (setf (alist-get 'ruff-formatting apheleia-formatters)
+          '("ruff" "format" "--stdin-filename" filepath "-"))
+    (setf (alist-get 'python-mode apheleia-mode-alist)
+          '(ruff-formatting))
+    (setf (alist-get 'c-ts-mode apheleia-mode-alist) 'clang-format)
+    (setf (alist-get 'c++-ts-mode apheleia-mode-alist) 'clang-format)
+    (apheleia-global-mode +1))
 #+end_src
 **** protobuf/yang
 #+begin_src emacs-lisp
   (use-package protobuf-mode)
   (use-package yang-mode)
 #+end_src
-*** company completion
+*** corfu completion
 #+begin_src emacs-lisp
-  (use-package company
-    :after lsp-mode
-    :hook (lsp-mode . company-mode)
-    :bind (:map company-active-map
-		("<tab>" . company-complete-selection))
-    (:map lsp-mode-map
-	  ("<tab>" . company-indent-or-complete-common))
-    :custom
-    (company-minimum-prefix-length 1)
-    (company-idle-delay 0.0))
-
-  (use-package company-box
-    :hook (company-mode . company-box-mode))
-#+end_src
-*** projectile
-#+begin_src emacs-lisp
-  (use-package projectile
-    :diminish projectile-mode
-    :config (projectile-mode)
-    :custom ((projectile-completion-system 'ivy))
-    :bind-keymap
-    ("C-c p" . projectile-command-map)
+  (use-package corfu
+    :ensure t
     :init
-    ;; NOTE: Set this to the folder where you keep your Git repos!
-    (when (file-directory-p "*/code-proj")
-      (setq projectile-project-search-path '("*/code-proj")))
-    (setq projectile-switch-project-action #'projectile-dired))
+    (global-corfu-mode)
+    :custom
+    (corfu-auto t)
+    (corfu-auto-prefix 2)
+    (corfu-auto-delay 0.0)
+    (corfu-cycle t)
+    (corfu-preselect 'prompt)
+    (corfu-quit-at-boundary 'separator)
+    (corfu-preview-current 'insert)
+    (corfu-preselect-first t)
 
-  (use-package counsel-projectile
-    :config (counsel-projectile-mode))
+    :bind (:map corfu-map
+                ("TAB" . corfu-insert)
+                ("<tab>" . corfu-insert)
+                ("S-TAB" . corfu-previous)
+                ("<backtab>" . corfu-previous)
+                ("M-d" . corfu-popupinfo-toggle)
+                ("M-p" . corfu-popupinfo-scroll-down)
+                ("M-n" . corfu-popupinfo-scroll-up))
+
+    :config
+    (corfu-popupinfo-mode 1)
+    (setq corfu-popupinfo-delay 0.2))
+
+  (use-package kind-icon
+    :ensure t
+    :after corfu
+    :custom
+    (kind-icon-default-face 'corfu-default)
+    :config
+    (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+
+  (use-package cape
+    :ensure t
+    :init
+    (add-to-list 'completion-at-point-functions #'cape-file)
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-keyword))
+
+  (setq tab-always-indent 'complete) ;; TAB indents first, then completes
+
+  ;; Ensure Corfu works in the minibuffer
+  (defun corfu-enable-in-minibuffer ()
+    (when (where-is-internal #'completion-at-point (list (current-local-map)))
+      (setq-local corfu-auto nil)
+      (corfu-mode 1)))
+
+  (add-hook 'minibuffer-setup-hook #'corfu-enable-in-minibuffer)
 #+end_src
 *** Braces / Bracket completion
 #+begin_src emacs-lisp
