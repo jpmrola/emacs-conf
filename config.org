@@ -122,11 +122,6 @@
   :config
   (auto-package-update-maybe)
   (auto-package-update-at-time "09:00"))
-
-  ;; vc-use-package before emacs 30
-  (unless (package-installed-p 'vc-use-package)
-    (package-vc-install "https://github.com/slotThe/vc-use-package"))
-  (require 'vc-use-package)
 #+end_src
 ** Theming
 #+begin_src emacs-lisp
