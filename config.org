@@ -205,9 +205,20 @@
     :ensure t
     :init
     (vertico-mode)
+    :config
+    (setq enable-recursive-minibuffers t)
     :custom
     (vertico-cycle t)
     (vertico-count 10))
+
+  (use-package vertico-directory
+    :after vertico
+    :ensure nil
+    :bind (:map vertico-map
+                ("RET" . vertico-directory-enter)
+                ("DEL" . vertico-directory-delete-char)
+                ("M-DEL" . vertico-directory-delete-word))
+    :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
 #+end_src
 *** consult
 #+begin_src emacs-lisp
@@ -229,10 +240,9 @@
   (use-package orderless
     :ensure t
     :custom
-    (completion-styles '(orderless partial-completion basic))
-    (completion-category-defaults nil)
-    (completion-category-overrides nil))
-  (setq read-extended-command-predicate #'command-completion-default-include-p)
+    (completion-styles '(orderless basic))
+    (completion-category-overrides '((file (styles partial-completion))))
+    (completion-pcm-leading-wildcard t))
 #+end_src
 *** embark
 #+begin_src emacs-lisp
@@ -254,6 +264,8 @@
 #+begin_src emacs-lisp
   (use-package marginalia
     :ensure t
+    :bind (:map minibuffer-local-map
+  	      ("M-A" . marginalia-cycle))
     :init
     (marginalia-mode))
 #+end_src
@@ -414,6 +426,18 @@
     :after (eglot consult)
     :bind (:map eglot-mode-map
                 ("C-c l s" . consult-eglot-symbols)))
+
+  (use-package dape
+    :hook
+    (kill-emacs . dape-breakpoint-save)
+    (after-init . dape-breakpoint-load)
+    :custom
+    (dape-breakpoint-global-mode +1)
+    (dape-buffer-window-arrangement 'right)
+    :config
+    (add-hook 'dape-display-source-hook #'pulse-momentary-highlight-one-line)
+    (add-hook 'dape-start-hook (lambda () (save-some-buffers t t)))
+    (add-hook 'dape-compile-hook #'kill-buffer))
 #+end_src
 **** rust
 #+begin_src emacs-lisp
@@ -882,4 +906,13 @@
 	      (set (make-local-variable 'evil-normal-state-cursor) (list nil))
 	      (internal-show-cursor nil nil)
 	      (display-line-numbers-mode 0)))
+#+end_src
+*** visual bell fix
+#+begin_src emacs-lisp
+  (defun bell-fix/disable-tab-bar-mouse-bell ()
+    "Disable the mouse-movement bell on the tab-bar for the current buffer."
+    (local-set-key (vector 'tab-bar 'mouse-movement) #'ignore))
+
+  ;; Apply this to EVERY buffer (Programming, Org, Text, etc.)
+  (add-hook 'after-change-major-mode-hook #'bell-fix/disable-tab-bar-mouse-bell)
 #+end_src
